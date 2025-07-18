@@ -29,18 +29,24 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// deserialize the request body into a Task structure
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+		// return status 400
+		w.WriteHeader(http.StatusBadRequest)
 		writeJSON(w, map[string]string{"error": "incorrect data in JSON"})
 		return
 	}
 
 	// check for mandatory title
 	if task.Title == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		// return status 400
 		writeJSON(w, map[string]string{"error": "task title not specified"})
 		return
 	}
 
 	// checking and correcting the date using checkDate
 	if err := checkDate(&task); err != nil {
+		// return status 400
+		w.WriteHeader(http.StatusBadRequest)
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
@@ -48,6 +54,8 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	// add to DB
 	id, err := db.AddTask(&task)
 	if err != nil {
+		// return status 500
+		w.WriteHeader(http.StatusInternalServerError)
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
@@ -60,13 +68,17 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
 	if id == "" {
-		writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+		// return status 400
+		w.WriteHeader(http.StatusBadRequest)
+		writeJSON(w, map[string]string{"error": "ID not specified"})
 		return
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "Задача не найдена"})
+		// return status 404
+		w.WriteHeader(http.StatusNotFound)
+		writeJSON(w, map[string]string{"error": "task not found"})
 		return
 	}
 
@@ -78,23 +90,31 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJSON(w, map[string]string{"error": "Невалидный JSON"})
+		// return status 400
+		w.WriteHeader(http.StatusBadRequest)
+		writeJSON(w, map[string]string{"error": "invalid JSON"})
 		return
 	}
 
 	// check for mandatory title
 	if task.Title == "" {
+		// return status 400
+		w.WriteHeader(http.StatusBadRequest)
 		writeJSON(w, map[string]string{"error": "task title not specified"})
 		return
 	}
 
 	// checking and correcting the date using checkDate
 	if err := checkDate(&task); err != nil {
+		// return status 400
+		w.WriteHeader(http.StatusBadRequest)
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
 
 	if err := db.UpdateTask(&task); err != nil {
+		// return status 500
+		w.WriteHeader(http.StatusInternalServerError)
 		writeJSON(w, map[string]string{"error": err.Error()})
 		return
 	}
@@ -154,7 +174,7 @@ func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "Task not found"})
+		writeJSON(w, map[string]string{"error": "task not found"})
 		return
 	}
 
@@ -188,7 +208,7 @@ func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+		writeJSON(w, map[string]string{"error": "ID not specified"})
 		return
 	}
 
